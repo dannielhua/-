@@ -3,179 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 图书借阅管理系统（同步版）</title>
-    <!-- 引入 Supabase 客户端 -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <title>📚 图书借阅管理系统</title>
     <style>
-        /* 样式与之前完全一致，此处省略以保证回答简洁，实际使用请粘贴完整样式 */
-        /* 您可以复制之前我提供的所有 CSS 样式到这里 */
         :root {
             --bg: #f0f4f8;
             --card-bg: #ffffff;
             --primary: #4a6cf7;
-            --primary-hover: #3b5de7;
             --borrow-color: #f59e0b;
-            --borrow-hover: #d97706;
             --return-color: #10b981;
-            --return-hover: #059669;
             --text: #1e293b;
             --text-secondary: #64748b;
             --border: #e2e8f0;
-            --danger: #ef4444;
-            --danger-hover: #dc2626;
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.08);
             --radius: 12px;
-            --radius-sm: 8px;
-            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+            --shadow: 0 4px 6px rgba(0,0,0,0.07);
         }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             padding: 20px;
-            background-image:
-                radial-gradient(ellipse at 20% 20%, rgba(74, 108, 247, 0.04) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 80%, rgba(16, 185, 129, 0.04) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(245, 158, 11, 0.02) 0%, transparent 60%);
         }
-        .container { width: 100%; max-width: 820px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 40px; }
+        .container { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 20px; padding-bottom: 40px; }
         .header { text-align: center; padding: 10px 0; }
-        .header .icon-row { font-size: 48px; margin-bottom: 4px; animation: float 3s ease-in-out infinite; }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        .header h1 {
-            font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text);
-            background: linear-gradient(135deg, #4a6cf7, #6366f1);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        .header .icon-row { font-size: 48px; }
+        .header h1 { font-size: 1.8rem; font-weight: 700; }
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
         }
-        .header .subtitle { font-size: 0.9rem; color: var(--text-secondary); margin-top: 2px; }
-        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px 28px; box-shadow: var(--shadow); border: 1px solid var(--border); transition: var(--transition); }
-        .tab-switch { display: flex; gap: 0; background: #f1f5f9; border-radius: 30px; padding: 4px; position: relative; overflow: hidden; }
+        .tab-switch {
+            display: flex;
+            background: #f1f5f9;
+            border-radius: 30px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
         .tab-btn {
-            flex: 1; padding: 12px 20px; border: none; background: transparent; border-radius: 26px; cursor: pointer;
-            font-size: 0.95rem; font-weight: 600; color: var(--text-secondary); transition: var(--transition);
-            position: relative; z-index: 1; white-space: nowrap; letter-spacing: 0.01em;
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            border-radius: 26px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-secondary);
         }
-        .tab-btn.active { color: #fff; box-shadow: var(--shadow-sm); }
-        .tab-btn.active.tab-borrow { background: var(--borrow-color); }
-        .tab-btn.active.tab-return { background: var(--return-color); }
-        .tab-btn:not(.active):hover { color: var(--text); background: rgba(255, 255, 255, 0.5); }
-        .tab-icon { margin-right: 6px; }
-        .form-section { display: none; flex-direction: column; gap: 14px; animation: fadeSlideIn 0.35s ease; }
+        .tab-btn.active.borrow { background: var(--borrow-color); color: #fff; }
+        .tab-btn.active.return { background: var(--return-color); color: #fff; }
+        .form-section { display: none; flex-direction: column; gap: 14px; }
         .form-section.active { display: flex; }
-        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
         .form-group { flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 5px; }
         .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
         .form-group input {
-            padding: 11px 14px; border: 2px solid var(--border); border-radius: var(--radius-sm);
-            font-size: 0.95rem; transition: var(--transition); background: #fafbfc; color: var(--text); outline: none;
+            padding: 11px 14px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
         }
-        .form-group input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1); }
-        .form-group input::placeholder { color: #c0c8d2; }
+        .form-group input:focus { border-color: var(--primary); }
         .submit-btn {
-            padding: 12px 28px; border: none; border-radius: 30px; font-size: 1rem; font-weight: 700; cursor: pointer;
-            color: #fff; transition: var(--transition); align-self: flex-start; box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 6px;
+            padding: 12px 28px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            color: #fff;
+            align-self: flex-start;
         }
-        .submit-btn.btn-borrow { background: var(--borrow-color); }
-        .submit-btn.btn-borrow:hover { background: var(--borrow-hover); box-shadow: var(--shadow); transform: translateY(-1px); }
-        .submit-btn.btn-return { background: var(--return-color); }
-        .submit-btn.btn-return:hover { background: var(--return-hover); box-shadow: var(--shadow); transform: translateY(-1px); }
+        .submit-btn.borrow-btn { background: var(--borrow-color); }
+        .submit-btn.return-btn { background: var(--return-color); }
         .submit-btn:active { transform: scale(0.97); }
-        .table-section { position: relative; }
-        .table-header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
-        .table-title { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-        .table-actions-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-        .btn-sm { padding: 7px 14px; border-radius: 20px; border: none; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: var(--transition); white-space: nowrap; }
-        .btn-lock { background: #f1f5f9; color: #64748b; }
-        .btn-lock:hover { background: #e2e8f0; color: #475569; }
-        .btn-change-pwd { background: #fef3c7; color: #92400e; }
-        .btn-change-pwd:hover { background: #fde68a; }
-        .btn-clear-all { background: #fee2e2; color: #991b1b; }
-        .btn-clear-all:hover { background: #fecaca; }
+
         .lock-overlay {
-            position: absolute; inset: 0; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px); border-radius: var(--radius); display: flex; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 10; gap: 16px; padding: 30px;
-            transition: opacity 0.4s ease, visibility 0.4s ease; border: 2px dashed #dce3eb;
+            background: rgba(255,255,255,0.9);
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            gap: 16px;
+            border: 2px dashed #dce3eb;
+            margin-bottom: 16px;
         }
-        .lock-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-        .lock-icon { font-size: 56px; animation: pulse 2.5s ease-in-out infinite; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
-        .lock-overlay .lock-label { font-weight: 700; font-size: 1rem; color: #64748b; }
-        .lock-input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+        .lock-overlay.hidden { display: none; }
+        .lock-icon { font-size: 56px; }
+        .lock-input-row { display: flex; gap: 8px; }
         .lock-input-row input {
-            padding: 10px 16px; border: 2px solid #dce3eb; border-radius: 25px; font-size: 1rem; outline: none;
-            width: 180px; text-align: center; font-family: var(--font-mono); letter-spacing: 0.15em; transition: var(--transition); background: #fff;
+            padding: 10px 16px;
+            border: 2px solid #dce3eb;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            width: 180px;
+            text-align: center;
         }
-        .lock-input-row input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1); }
-        .lock-input-row input.wrong { border-color: #ef4444; animation: shake 0.5s ease; background: #fef2f2; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
-        .btn-unlock { padding: 10px 22px; border-radius: 25px; border: none; background: var(--primary); color: #fff; font-weight: 700; cursor: pointer; font-size: 0.95rem; transition: var(--transition); }
-        .btn-unlock:hover { background: var(--primary-hover); box-shadow: var(--shadow); }
-        .lock-hint { font-size: 0.78rem; color: #a0aec0; text-align: center; }
-        .table-wrapper { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 650px; }
-        table thead { background: #f8fafc; position: sticky; top: 0; }
-        table th { padding: 12px 14px; text-align: left; font-weight: 700; color: #475569; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #e2e8f0; }
-        table td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; color: var(--text); }
-        table tbody tr:hover { background: #f8fafc; }
+        .btn-unlock {
+            padding: 10px 22px;
+            border-radius: 25px;
+            border: none;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 600px; }
+        table thead { background: #f8fafc; }
+        table th { padding: 12px 14px; text-align: left; font-weight: 700; border-bottom: 2px solid #e2e8f0; }
+        table td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; }
         .badge { display: inline-block; padding: 4px 10px; border-radius: 15px; font-size: 0.75rem; font-weight: 700; }
         .badge-borrowed { background: #fef3c7; color: #92400e; }
         .badge-returned { background: #d1fae5; color: #065f46; }
-        .action-btn { padding: 5px 12px; border-radius: 15px; border: none; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: var(--transition); }
-        .action-btn.return-book-btn { background: #d1fae5; color: #065f46; }
-        .action-btn.return-book-btn:hover { background: #a7f3d0; }
-        .action-btn.delete-btn { background: #fee2e2; color: #991b1b; }
-        .action-btn.delete-btn:hover { background: #fecaca; }
-        .empty-state { text-align: center; padding: 40px 20px; color: #a0aec0; font-size: 0.95rem; }
-        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
-        .toast { padding: 13px 20px; border-radius: 25px; color: #fff; font-weight: 600; font-size: 0.9rem; box-shadow: var(--shadow-lg); animation: slideInToast 0.4s ease, fadeOutToast 0.3s ease 2.2s forwards; pointer-events: auto; max-width: 380px; }
+        .action-btn {
+            padding: 5px 12px;
+            border-radius: 15px;
+            border: none;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 2px;
+        }
+        .return-btn { background: #d1fae5; color: #065f46; }
+        .delete-btn { background: #fee2e2; color: #991b1b; }
+        .empty-state { text-align: center; padding: 40px; color: #a0aec0; }
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; }
+        .toast {
+            padding: 13px 20px;
+            border-radius: 25px;
+            color: #fff;
+            font-weight: 600;
+            margin-bottom: 8px;
+            animation: fadeOut 3s forwards;
+        }
         .toast.success { background: #10b981; }
         .toast.error { background: #ef4444; }
-        .toast.info { background: #4a6cf7; }
-        @keyframes slideInToast { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes fadeOutToast { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(80%); } }
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 100; display: flex; align-items: center; justify-content: center; }
-        .modal { background: #fff; border-radius: var(--radius); padding: 28px; width: 90%; max-width: 420px; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: 14px; }
-        .modal h3 { font-size: 1.2rem; font-weight: 700; }
-        .modal input { padding: 10px 14px; border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 0.95rem; outline: none; font-family: var(--font-mono); letter-spacing: 0.1em; transition: var(--transition); }
-        .modal input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1); }
-        .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
-        .modal-btns button { padding: 9px 18px; border-radius: 20px; border: none; font-weight: 600; cursor: pointer; font-size: 0.9rem; transition: var(--transition); }
-        .modal-btns .btn-confirm { background: var(--primary); color: #fff; }
-        .modal-btns .btn-confirm:hover { background: var(--primary-hover); }
-        .modal-btns .btn-cancel { background: #f1f5f9; color: #64748b; }
-        .modal-btns .btn-cancel:hover { background: #e2e8f0; }
-        .stats-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
-        .stat-badge { padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; }
-        .stat-total { background: #e0e7ff; color: #3730a3; }
-        .stat-borrowing { background: #fef3c7; color: #92400e; }
-        .stat-returned { background: #d1fae5; color: #065f46; }
-
-        @media (max-width: 600px) {
-            .card { padding: 16px 14px; }
-            .form-row { flex-direction: column; gap: 10px; }
-            .form-group { min-width: 100%; }
-            .submit-btn { width: 100%; justify-content: center; padding: 14px; }
-            .header h1 { font-size: 1.4rem; }
-            .header .icon-row { font-size: 36px; }
-            .tab-btn { font-size: 0.85rem; padding: 10px 14px; }
-            table { font-size: 0.78rem; min-width: 550px; }
-            table th, table td { padding: 8px 10px; }
-            .lock-input-row input { width: 140px; }
-            .lock-overlay { padding: 20px; gap: 10px; }
-            .lock-icon { font-size: 40px; }
-            .toast-container { right: 10px; left: 10px; top: 10px; }
-            .toast { font-size: 0.8rem; padding: 10px 16px; max-width: 100%; }
+        @keyframes fadeOut { 0% { opacity:1; } 70% { opacity:1; } 100% { opacity:0; } }
+        .btn-sm {
+            padding: 7px 14px;
+            border-radius: 20px;
+            border: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0 4px;
         }
+        .btn-lock { background: #f1f5f9; color: #64748b; }
+        .btn-clear { background: #fee2e2; color: #991b1b; }
+        .stats { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+        .stat { padding: 4px 12px; border-radius: 15px; font-size: 0.78rem; font-weight: 700; }
+        .stat.total { background: #e0e7ff; color: #3730a3; }
+        .stat.borrowing { background: #fef3c7; color: #92400e; }
+        .stat.returned { background: #d1fae5; color: #065f46; }
     </style>
 </head>
 <body>
@@ -183,79 +174,72 @@
         <div class="header">
             <div class="icon-row">📚</div>
             <h1>图书借阅管理系统</h1>
-            <p class="subtitle">多设备同步 · 简单 · 安全</p>
+            <p style="color: #64748b;">多设备同步 · 简单 · 安全</p>
         </div>
 
         <div class="card">
-            <div class="tab-switch" id="tabSwitch">
-                <button class="tab-btn tab-borrow active" data-tab="borrow">
-                    <span class="tab-icon">📖</span> 借书登记
-                </button>
-                <button class="tab-btn tab-return" data-tab="return">
-                    <span class="tab-icon">📗</span> 还书登记
-                </button>
+            <div class="tab-switch">
+                <button class="tab-btn borrow active" data-tab="borrow">📖 借书登记</button>
+                <button class="tab-btn return" data-tab="return">📗 还书登记</button>
             </div>
 
             <div class="form-section active" id="formBorrow">
                 <div class="form-row">
                     <div class="form-group">
                         <label>👤 借阅人姓名</label>
-                        <input type="text" id="borrowName" placeholder="请输入姓名" autocomplete="off">
+                        <input type="text" id="borrowName" placeholder="请输入姓名">
                     </div>
                     <div class="form-group">
                         <label>📖 书名</label>
-                        <input type="text" id="borrowBook" placeholder="请输入书名" autocomplete="off">
+                        <input type="text" id="borrowBook" placeholder="请输入书名">
                     </div>
                     <div class="form-group">
                         <label>📅 借书日期</label>
                         <input type="date" id="borrowDate">
                     </div>
                 </div>
-                <button class="submit-btn btn-borrow" id="borrowBtn">
-                    ✍️ 确认借书
-                </button>
+                <button class="submit-btn borrow-btn" id="borrowBtn">✍️ 确认借书</button>
             </div>
 
             <div class="form-section" id="formReturn">
                 <div class="form-row">
                     <div class="form-group">
                         <label>👤 还书人姓名</label>
-                        <input type="text" id="returnName" placeholder="请输入姓名" autocomplete="off">
+                        <input type="text" id="returnName" placeholder="请输入姓名">
                     </div>
                     <div class="form-group">
                         <label>📖 书名</label>
-                        <input type="text" id="returnBook" placeholder="请输入书名" autocomplete="off">
+                        <input type="text" id="returnBook" placeholder="请输入书名">
                     </div>
                     <div class="form-group">
                         <label>📅 还书日期</label>
                         <input type="date" id="returnDate">
                     </div>
                 </div>
-                <button class="submit-btn btn-return" id="returnBtn">
-                    ✅ 确认还书
-                </button>
+                <button class="submit-btn return-btn" id="returnBtn">✅ 确认还书</button>
             </div>
         </div>
 
-        <div class="card table-section" id="tableSectionCard">
-            <div class="table-header-row">
-                <div class="table-title">📋 借阅记录</div>
-                <div class="table-actions-row" id="tableActionsRow" style="display:none;">
-                    <span class="stats-row" id="statsRow"></span>
-                    <button class="btn-sm btn-change-pwd" onclick="openChangePwdModal()">🔑 改密码</button>
-                    <button class="btn-sm btn-clear-all" onclick="clearAllRecords()">🗑 清空</button>
-                    <button class="btn-sm btn-lock" onclick="lockTable()">🔒 锁定</button>
-                </div>
-            </div>
-
+        <div class="card">
             <div class="lock-overlay" id="lockOverlay">
                 <span class="lock-icon">🔐</span>
-                <span class="lock-label">此表格已被密码保护</span>
+                <strong>此表格已被密码保护</strong>
                 <div class="lock-input-row">
                     <input type="password" id="unlockPassword" placeholder="请输入密码" maxlength="30">
-                    <button class="btn-unlock" onclick="unlockTable()">🔓 解锁</button>
+                    <button class="btn-unlock" id="unlockBtn">🔓 解锁</button>
                 </div>
-                <span class="lock-hint">💡 默认密码：<strong>admin123</strong>（解锁后可修改）</span>
+                <span style="color:#a0aec0;font-size:0.8rem;">默认密码：<strong>admin123</strong></span>
+            </div>
+
+            <div id="tableActions" style="display:none;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+                    <strong>📋 借阅记录</strong>
+                    <div>
+                        <span class="stats" id="statsRow"></span>
+                        <button class="btn-sm btn-clear" id="clearBtn">🗑 清空</button>
+                        <button class="btn-sm btn-lock" id="lockBtn">🔒 锁定</button>
+                    </div>
+                </div>
             </div>
 
             <div class="table-wrapper">
@@ -272,14 +256,7 @@
                         </tr>
                     </thead>
                     <tbody id="tableBody">
-                        <tr>
-                            <td colspan="7">
-                                <div class="empty-state">
-                                    <span class="empty-icon">📭</span>
-                                    暂无借阅记录（或表格已锁定）
-                                </div>
-                            </td>
-                        </tr>
+                        <tr><td colspan="7"><div class="empty-state">🔒 请先解锁表格</div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -288,64 +265,282 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <div class="modal-backdrop" id="pwdModal" style="display:none;">
-        <div class="modal">
-            <h3>🔑 修改解锁密码</h3>
-            <input type="password" id="oldPwd" placeholder="请输入旧密码" maxlength="30">
-            <input type="password" id="newPwd" placeholder="请输入新密码" maxlength="30">
-            <input type="password" id="confirmPwd" placeholder="请确认新密码" maxlength="30">
-            <div class="modal-btns">
-                <button class="btn-cancel" onclick="closePwdModal()">取消</button>
-                <button class="btn-confirm" onclick="confirmChangePwd()">确认修改</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // ==================== Supabase 初始化 ====================
-        const SUPABASE_URL = 'https://aqlsoomclgcgwpjoutjz.supabase.co';      // ← 替换成您的 Project URL
-        const SUPABASE_ANON_KEY = ' eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxbHNvb21jbGdjZ3dwam91dGp6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjY0MTA2NiwiZXhwIjoyMDk4MjE3MDY2fQ.tffZODigF8QTLpUeamINtHa7PqoXISNFihI372upjIg';  // ← 替换成您的 anon public key
+        // ==================== 🔧 请在这里填写您的 Supabase 信息 ====================
+        const SUPABASE_URL = 'https://aqlsoomclgcgwpjoutjz.supabase.co';        // ← 改成您的 Project URL
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxbHNvb21jbGdjZ3dwam91dGp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDEwNjYsImV4cCI6MjA5ODIxNzA2Nn0.j14ss-ijuzW5QayUjew_6htNoxLySy82cdvpqHJv6Nk';  // ← 改成您的 anon key
+        // ========================================================================
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // ==================== 密码管理（仍使用本地存储） ====================
-        const PWD_STORAGE_KEY = 'library_password';
+        const API_URL = SUPABASE_URL + '/rest/v1/records';
+        const PASSWORD_KEY = 'lib_pwd';
         const DEFAULT_PASSWORD = 'admin123';
 
-        function getStoredPassword() {
-            return localStorage.getItem(PWD_STORAGE_KEY) || DEFAULT_PASSWORD;
-        }
-        function setStoredPassword(newPwd) {
-            localStorage.setItem(PWD_STORAGE_KEY, newPwd);
+        function getPassword() {
+            return localStorage.getItem(PASSWORD_KEY) || DEFAULT_PASSWORD;
         }
 
-        // ==================== 数据操作（改为 Supabase） ====================
+        // Toast 通知
+        function toast(msg, type) {
+            const t = document.createElement('div');
+            t.className = 'toast ' + (type || 'success');
+            t.textContent = msg;
+            document.getElementById('toastContainer').appendChild(t);
+            setTimeout(function() { t.remove(); }, 3000);
+        }
+
+        // ==================== API 封装（无外部库依赖） ====================
+        function apiHeaders() {
+            return {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            };
+        }
+
         async function fetchRecords() {
-            const { data, error } = await supabase
-                .from('records')
-                .select('*')
-                .order('created_at', { ascending: false });
-            if (error) {
-                console.error('获取记录失败:', error);
-                showToast('获取记录失败，请稍后重试', 'error');
-                return [];
-            }
-            return data;
+            const resp = await fetch(API_URL + '?order=created_at.desc', {
+                headers: apiHeaders()
+            });
+            if (!resp.ok) throw new Error('获取记录失败');
+            return await resp.json();
         }
 
         async function addRecord(record) {
-            const { data, error } = await supabase
-                .from('records')
-                .insert([{
+            const resp = await fetch(API_URL, {
+                method: 'POST',
+                headers: apiHeaders(),
+                body: JSON.stringify({
                     name: record.name,
                     book_name: record.bookName,
                     status: record.status,
                     borrow_date: record.date,
                     return_date: record.returnDate
-                }])
-                .select();
-            if (error) {
-                console.error('添加记录失败:', error);
+                })
+            });
+            if (!resp.ok) throw new Error('添加失败');
+            return await resp.json();
+        }
+
+        async function updateRecord(id, updates) {
+            const resp = await fetch(API_URL + '?id=eq.' + id, {
+                method: 'PATCH',
+                headers: apiHeaders(),
+                body: JSON.stringify(updates)
+            });
+            if (!resp.ok) throw new Error('更新失败');
+        }
+
+        async function deleteRecord(id) {
+            const resp = await fetch(API_URL + '?id=eq.' + id, {
+                method: 'DELETE',
+                headers: apiHeaders()
+            });
+            if (!resp.ok) throw new Error('删除失败');
+        }
+
+        async function clearAllRecords() {
+            const resp = await fetch(API_URL + '?status=neq.nonexistent', {
+                method: 'DELETE',
+                headers: apiHeaders()
+            });
+            if (!resp.ok) throw new Error('清空失败');
+        }
+
+        // ==================== 页面逻辑 ====================
+        let isUnlocked = false;
+
+        // 标签切换
+        document.querySelectorAll('.tab-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                document.getElementById('formBorrow').classList.remove('active');
+                document.getElementById('formReturn').classList.remove('active');
+                if (btn.dataset.tab === 'borrow') {
+                    document.getElementById('formBorrow').classList.add('active');
+                } else {
+                    document.getElementById('formReturn').classList.add('active');
+                }
+            });
+        });
+
+        // 设置默认日期
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('borrowDate').value = today;
+        document.getElementById('returnDate').value = today;
+
+        // 渲染表格
+        async function renderTable() {
+            try {
+                const records = await fetchRecords();
+                const tbody = document.getElementById('tableBody');
+                if (records.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">📭 暂无借阅记录</div></td></tr>';
+                } else {
+                    tbody.innerHTML = records.map(function(r, i) {
+                        const badge = r.status === '借出'
+                            ? '<span class="badge badge-borrowed">📖 借出</span>'
+                            : '<span class="badge badge-returned">📗 已还</span>';
+                        const retDate = r.return_date || '<span style="color:#c0c8d2;">—</span>';
+                        let actions = '';
+                        if (r.status === '借出') {
+                            actions += '<button class="action-btn return-btn" onclick="quickReturn(' + r.id + ')">📥 还书</button>';
+                        }
+                        actions += '<button class="action-btn delete-btn" onclick="delRecord(' + r.id + ')">✕</button>';
+                        return '<tr><td>' + (i+1) + '</td><td><strong>' + esc(r.name) + '</strong></td><td>' + esc(r.book_name) + '</td><td>' + r.borrow_date + '</td><td>' + badge + '</td><td>' + retDate + '</td><td>' + actions + '</td></tr>';
+                    }).join('');
+                }
+                updateStats(records);
+            } catch(e) {
+                console.error(e);
+                toast('加载记录失败，请检查网络或密钥配置', 'error');
+            }
+        }
+
+        function esc(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        function updateStats(records) {
+            const total = records.length;
+            const borrowing = records.filter(function(r) { return r.status === '借出'; }).length;
+            const returned = records.filter(function(r) { return r.status === '已还'; }).length;
+            document.getElementById('statsRow').innerHTML =
+                '<span class="stat total">📊 总计：' + total + '</span>' +
+                '<span class="stat borrowing">📖 借出中：' + borrowing + '</span>' +
+                '<span class="stat returned">📗 已还：' + returned + '</span>';
+        }
+
+        // 解锁
+        document.getElementById('unlockBtn').addEventListener('click', async function() {
+            const inputPwd = document.getElementById('unlockPassword').value.trim();
+            if (!inputPwd) { toast('请输入密码', 'error'); return; }
+            if (inputPwd === getPassword()) {
+                isUnlocked = true;
+                document.getElementById('lockOverlay').classList.add('hidden');
+                document.getElementById('tableActions').style.display = 'block';
+                document.getElementById('unlockPassword').value = '';
+                toast('🔓 表格已解锁', 'success');
+                await renderTable();
+            } else {
+                toast('❌ 密码错误', 'error');
+            }
+        });
+
+        // 回车解锁
+        document.getElementById('unlockPassword').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') document.getElementById('unlockBtn').click();
+        });
+
+        // 锁定
+        document.getElementById('lockBtn').addEventListener('click', function() {
+            isUnlocked = false;
+            document.getElementById('lockOverlay').classList.remove('hidden');
+            document.getElementById('tableActions').style.display = 'none';
+            document.getElementById('tableBody').innerHTML = '<tr><td colspan="7"><div class="empty-state">🔒 表格已锁定</div></td></tr>';
+            toast('🔒 表格已锁定', 'success');
+        });
+
+        // 借书
+        document.getElementById('borrowBtn').addEventListener('click', async function() {
+            const name = document.getElementById('borrowName').value.trim();
+            const bookName = document.getElementById('borrowBook').value.trim();
+            const date = document.getElementById('borrowDate').value;
+            if (!name || !bookName || !date) {
+                toast('请填写完整信息', 'error');
+                return;
+            }
+            try {
+                await addRecord({ name: name, bookName: bookName, date: date, status: '借出', returnDate: null });
+                toast('✅ 借书登记成功！', 'success');
+                document.getElementById('borrowName').value = '';
+                document.getElementById('borrowBook').value = '';
+                document.getElementById('borrowDate').value = today;
+                if (isUnlocked) await renderTable();
+            } catch(e) {
+                toast('借书登记失败，请重试', 'error');
+            }
+        });
+
+        // 还书
+        document.getElementById('returnBtn').addEventListener('click', async function() {
+            const name = document.getElementById('returnName').value.trim();
+            const bookName = document.getElementById('returnBook').value.trim();
+            const date = document.getElementById('returnDate').value;
+            if (!name || !bookName || !date) {
+                toast('请填写完整信息', 'error');
+                return;
+            }
+            try {
+                const records = await fetchRecords();
+                const matched = records.filter(function(r) {
+                    return r.name === name && r.book_name === bookName && r.status === '借出';
+                });
+                if (matched.length === 0) {
+                    toast('❌ 未找到该用户的未还记录', 'error');
+                    return;
+                }
+                await updateRecord(matched[0].id, { status: '已还', return_date: date });
+                toast('✅ 还书登记成功！', 'success');
+                document.getElementById('returnName').value = '';
+                document.getElementById('returnBook').value = '';
+                document.getElementById('returnDate').value = today;
+                if (isUnlocked) await renderTable();
+            } catch(e) {
+                toast('还书登记失败，请重试', 'error');
+            }
+        });
+
+        // 快捷还书
+        async function quickReturn(id) {
+            if (!isUnlocked) return;
+            try {
+                await updateRecord(id, { status: '已还', return_date: today });
+                toast('✅ 还书成功！', 'success');
+                await renderTable();
+            } catch(e) {
+                toast('操作失败', 'error');
+            }
+        }
+
+        // 删除单条
+        async function delRecord(id) {
+            if (!isUnlocked) return;
+            if (!confirm('确定删除此记录？')) return;
+            try {
+                await deleteRecord(id);
+                toast('🗑 已删除', 'success');
+                await renderTable();
+            } catch(e) {
+                toast('删除失败', 'error');
+            }
+        }
+
+        // 清空全部
+        document.getElementById('clearBtn').addEventListener('click', async function() {
+            if (!isUnlocked) return;
+            if (!confirm('⚠️ 确定清空所有记录？不可恢复！')) return;
+            if (!confirm('再次确认：真的要清空吗？')) return;
+            try {
+                await clearAllRecords();
+                toast('🗑 所有记录已清空', 'success');
+                await renderTable();
+            } catch(e) {
+                toast('清空失败', 'error');
+            }
+        });
+
+        // 暴露全局函数
+        window.quickReturn = quickReturn;
+        window.delRecord = delRecord;
+
+        console.log('✅ 借书系统已就绪（纯原生 JS，无外部依赖）');
+    </script>
+</body>
+</html>                console.error('添加记录失败:', error);
                 showToast('添加记录失败，请重试', 'error');
                 return null;
             }
